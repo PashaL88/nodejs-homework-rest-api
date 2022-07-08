@@ -11,7 +11,7 @@ app.use(express.json());
 
 app.use("/api/contacts", contactsRouter);
 
-app.listen(3000);
+// app.listen(3000);
 
 // const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
@@ -26,4 +26,4 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message });
 });
 
-// module.exports = app;
+module.exports = app;
