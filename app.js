@@ -1,3 +1,5 @@
+// DbMepGYsBkETaiRO
+// ov7wob9dRIyYFVrH   = Node-project
 const express = require("express");
 // const logger = require("morgan");
 const cors = require("cors");
@@ -10,8 +12,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/contacts", contactsRouter);
-
-app.listen(3000);
 
 // const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
@@ -26,4 +26,6 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message });
 });
 
-// module.exports = app;
+// app.listen(3000, console.log("Runing"));
+
+module.exports = app;
