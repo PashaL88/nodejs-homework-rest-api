@@ -1,6 +1,6 @@
 const express = require("express");
 const Joi = require("joi");
-const Сontact = require("../../models/contact");
+const Contact = require("../../models/contact");
 
 const { createError } = require("../../helpers/");
 
@@ -18,7 +18,7 @@ const contactFavoriteSchema = Joi.object({
 
 router.get("/", async (req, res, next) => {
   try {
-    const result = await Сontact.find();
+    const result = await Contact.find();
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -28,7 +28,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await Сontact.findById(id);
+    const result = await Contact.findById(id);
     if (!result) {
       throw createError(404, "Not Found");
     }
@@ -45,20 +45,39 @@ router.post("/", async (req, res, next) => {
       throw createError(400, "missing required name field");
     }
 
-    const result = await Сontact.create(req.body);
+    const result = await Contact.create(req.body);
     res.status(201).json(result);
   } catch (error) {
     next(error);
   }
 });
 
+// router.delete("/:id", async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
+//     const result = Contact.findByIdAndRemove(id);
+//     if (!result) {
+//       throw createError(404, "Not Found");
+//     }
+//     res.json({ message: "contact deleted" });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 router.delete("/:id", async (req, res, next) => {
-  const { id } = req.params;
-  const result = Сontact.findByIdAndRemove(id);
-  if (!result) {
-    throw createError(404, "Not Found");
+  try {
+    const { id } = req.params;
+    const result = await Contact.findByIdAndRemove(id);
+    if (!result) {
+      throw createError(404, "Not found");
+    }
+    res.json({
+      message: "Contact deleted",
+    });
+  } catch (error) {
+    next(error);
   }
-  res.json({ message: "contact deleted" });
 });
 
 router.put("/:id", async (req, res, next) => {
@@ -68,7 +87,7 @@ router.put("/:id", async (req, res, next) => {
       throw createError(400, { message: "missing fields" });
     }
     const { id } = req.params;
-    const result = await Сontact.findByIdAndUpdate(id, req.body, { new: true });
+    const result = await Contact.findByIdAndUpdate(id, req.body, { new: true });
     if (!result) {
       throw createError(404, "Not Found");
     }
@@ -85,7 +104,7 @@ router.patch("/:id/favorite", async (req, res, next) => {
       throw createError(400, { message: "missing fields" });
     }
     const { id } = req.params;
-    const result = await Сontact.findByIdAndUpdate(id, req.body, {
+    const result = await Contact.findByIdAndUpdate(id, req.body, {
       new: true,
     });
     if (!result) {
