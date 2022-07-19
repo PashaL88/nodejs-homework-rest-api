@@ -1,5 +1,6 @@
 const express = require("express");
 const Joi = require("joi");
+const bcrypt = require("bcryptjs");
 
 const router = express.Router();
 
@@ -25,8 +26,37 @@ router.post("/signup", async (req, res, next) => {
     if (user) {
       throw createError(409, "Email in use");
     }
-    const result = await User.create({ email, password });
-    res.status(201).json({ email: result.email });
+    const hashPassword = await bcrypt.hash(password, 10);
+    const result = await User.create({ email, password: hashPassword });
+    res.status(201).json({
+      email: result.email,
+      subscription: result.subscription,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/login", async (req, res, next) => {
+  try {
+    const { error } = userRegisterSchema.validate(req.body);
+    if (error) {
+      throw createError(400);
+    }
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw createError(401, "Email wrong");
+    }
+    const passwordCompare = await bcrypt.compare(password, user.password);
+    if (!passwordCompare) {
+      throw createError(401, "Password wrong");
+    }
+
+    const token = "!asfasfas.sfafas.afsasgh";
+    res.json({
+      token,
+    });
   } catch (error) {
     next(error);
   }
