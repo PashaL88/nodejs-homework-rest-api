@@ -1,6 +1,8 @@
 const express = require("express");
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const router = express.Router();
 
@@ -8,12 +10,16 @@ const User = require("../../models/user");
 
 const { createError } = require("../../helpers/");
 
+const { authorize } = require("../../middlewares");
+
 const emailRegexp = /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/;
 
 const userRegisterSchema = Joi.object({
   email: Joi.string().pattern(emailRegexp).required(),
   password: Joi.string().min(6).required(),
 });
+
+const { SECRET_KEY } = process.env;
 
 router.post("/signup", async (req, res, next) => {
   try {
@@ -52,14 +58,37 @@ router.post("/login", async (req, res, next) => {
     if (!passwordCompare) {
       throw createError(401, "Password wrong");
     }
-
-    const token = "!asfasfas.sfafas.afsasgh";
+    const payload = {
+      id: user._id,
+    };
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+    await User.findByIdAndUpdate(user._id, { token });
     res.json({
       token,
     });
   } catch (error) {
     next(error);
   }
+});
+
+router.get("/logout", authorize, async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+    await User.findByIdAndUpdate(_id, { token: "" });
+    res.json({
+      message: "Logout succes",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/current", authorize, async (req, res) => {
+  const { subscription, email } = req.user;
+  res.json({
+    subscription,
+    email,
+  });
 });
 
 module.exports = router;
