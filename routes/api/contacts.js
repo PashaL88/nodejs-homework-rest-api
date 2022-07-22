@@ -4,6 +4,8 @@ const Contact = require("../../models/contact");
 
 const { createError } = require("../../helpers/");
 
+const { authorize } = require("../../middlewares");
+
 const router = express.Router();
 
 const contactSchema = Joi.object({
@@ -16,16 +18,17 @@ const contactFavoriteSchema = Joi.object({
   favorite: Joi.boolean().required(),
 });
 
-router.get("/", async (req, res, next) => {
+router.get("/", authorize, async (req, res, next) => {
   try {
-    const result = await Contact.find();
+    const { _id: owner } = req.user;
+    const result = await Contact.find({ owner }).populate("owner", "email");
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", authorize, async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await Contact.findById(id);
@@ -38,14 +41,15 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authorize, async (req, res, next) => {
   try {
+    const { _id: owner } = req.user;
     const { error } = contactSchema.validate(req.body);
     if (error) {
       throw createError(400, "missing required name field");
     }
 
-    const result = await Contact.create(req.body);
+    const result = await Contact.create({ ...req.body, owner });
     res.status(201).json(result);
   } catch (error) {
     next(error);
