@@ -1,6 +1,9 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
+
+// const fs = require("fs");
+
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -11,6 +14,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
+
+// app.post("/api/avatars", upload.single("image"), (res, req) => {
+//   console.log(req.body);
+//   console.log(req.file);
+// });
 
 app.use("/api/auth", authRouter);
 app.use("/api/contacts", contactsRouter);
