@@ -6,6 +6,7 @@ require("dotenv").config();
 const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("fs/promises");
+const Jimp = require("jimp");
 
 const router = express.Router();
 
@@ -109,10 +110,19 @@ router.patch(
     try {
       const { _id } = req.user;
       const { path: tempDir, originalname } = req.file;
+
       const [extention] = originalname.split(".").reverse();
       const newAvatar = path.join(`${_id}.${extention}`);
+
       const uploadDir = path.join(avatarsDir, newAvatar);
+
       await fs.rename(tempDir, uploadDir);
+      Jimp.read(uploadDir, (err, image) => {
+        if (err) throw err;
+        image
+          .resize(250, 250) // resize
+          .write(uploadDir); // save
+      });
       const avatarURL = path.join("avatars", newAvatar);
       await User.findByIdAndUpdate(req.user._id, { avatarURL });
       res.json({ avatarURL });
