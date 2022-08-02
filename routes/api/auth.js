@@ -7,12 +7,12 @@ const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("fs/promises");
 const Jimp = require("jimp");
-
+const { nanoid } = require("nanoid");
 const router = express.Router();
 
 const User = require("../../models/user");
 
-const { createError } = require("../../helpers/");
+const { createError, sendMail } = require("../../helpers/");
 
 const { authorize, upload } = require("../../middlewares");
 
@@ -21,6 +21,10 @@ const emailRegexp = /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/;
 const userRegisterSchema = Joi.object({
   email: Joi.string().pattern(emailRegexp).required(),
   password: Joi.string().min(6).required(),
+});
+
+const verifyEmailSchema = Joi.object({
+  email: Joi.string().pattern(emailRegexp).required(),
 });
 
 const { SECRET_KEY } = process.env;
@@ -38,15 +42,67 @@ router.post("/signup", async (req, res, next) => {
     }
     const hashPassword = await bcrypt.hash(password, 10);
     const avatarUrl = gravatar.url(email);
+    const verificationToken = nanoid();
     const result = await User.create({
       email,
       password: hashPassword,
       avatarUrl,
+      verificationToken,
     });
+    const mail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a target="_blank" href="http://localhost:3000/api/auth/verify/${verificationToken}">Click to verify your email</a>`,
+    };
+    await sendMail(mail);
     res.status(201).json({
       email: result.email,
       subscription: result.subscription,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) {
+      throw createError(404);
+    }
+    await User.findByIdAndUpdate(user._id, {
+      verificationToken: "",
+      verify: true,
+    });
+    res.json({ message: "Verification successfull" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify", async (req, res, next) => {
+  try {
+    const { error } = verifyEmailSchema.validate(req.body);
+    if (error) {
+      throw error;
+    }
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw createError(404);
+    }
+    if (user.verify) {
+      throw createError(400, "Verification has already been passed");
+    }
+    const mail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a target="_blank" href="http://localhost:3000/api/auth/verify/${user.verificationToken}">Click to verify yout email</a>`,
+    };
+    await sendMail(mail);
+    res.json({ message: "Verification has already been passed" });
   } catch (error) {
     next(error);
   }
@@ -61,6 +117,9 @@ router.post("/login", async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
+      throw createError(401, "Email wrong");
+    }
+    if (!user.verify) {
       throw createError(401, "Email wrong");
     }
     const passwordCompare = await bcrypt.compare(password, user.password);
