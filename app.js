@@ -26,11 +26,11 @@ const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
 app.use(logger(formatsLogger));
 
-app.use((req, res) => {
+app.use((_, res) => {
   res.status(404).json({ message: "Not found" });
 });
 
-app.use((error, req, res, next) => {
+app.use((error, _, res, __) => {
   const { status = 500, message = "Server error" } = error;
   res.status(status).json({ message });
 });
